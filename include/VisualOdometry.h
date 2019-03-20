@@ -1,32 +1,31 @@
-#ifndef EXTRACT_H
-#define EXTRACT_H
+#ifndef VISUALODOMETRY_H
+#define VISUALODOMETRY_H
 
-#include "PoseEstimation.h"
 #include <vector>
-#include <list>
 #include <opencv/cv.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 namespace Light_SLAM
 {
 
-class ExtractFeature
+class VisualOdometry
 {
 
 public:
 
     enum FrameState
     {
-        INIT_FRAME = 0,
+        INIT_FRAME,
         SECOND_FRAME,
-        REGULAR_FRAME
+        LOST_FRAME
     };
 
-    ExtractFeature(const std::string &strSettingPath);
-    ~ExtractFeature(){}
+    VisualOdometry(const std::string &strSettingPath);
+    ~VisualOdometry(){}
 
     void DetectFeature(cv::Mat img);
     void ShowFeature(cv::Mat img);
@@ -39,8 +38,8 @@ public:
 
     FrameState framestate;
     cv::Ptr<cv::ORB> mpORB;
-    cv::Ptr<cv::DescriptorMatcher> mpMatcher;
-
+    // cv::Ptr<cv::DescriptorMatcher> mpMatcher;
+    cv::FlannBasedMatcher mMatcher;
     std::vector<cv::KeyPoint> mvKeyPoints;
     cv::Mat mDesp;
         
@@ -60,4 +59,4 @@ public:
 };
 
 } //namespace Light_SLAM
-#endif // EXTRACT_H
+#endif // VISUALODOMETRY_H

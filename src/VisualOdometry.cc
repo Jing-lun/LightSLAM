@@ -1,14 +1,13 @@
 #include <vector>
 #include <iostream>
-#include "Extract.h"
+#include "VisualOdometry.h"
 
 using namespace cv;
 using namespace std;
 
 namespace Light_SLAM
 {
-    static int mCount;
-    ExtractFeature::ExtractFeature(const std::string &strSettingPath):framestate(INIT_FRAME)
+    VisualOdometry::VisualOdometry(const std::string &strSettingPath):framestate(INIT_FRAME),mMatcher(new flann::LshIndexParams(5,10,2))
     {
         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ); //Read Setting.yaml
         //     |fx  0   cx|
@@ -27,12 +26,15 @@ namespace Light_SLAM
         mOpticalCenter = cv::Point2d(cx, cy);
         mFocalLength = static_cast<double>(fx);
 
-        mpORB = ORB::create();
-        mpMatcher = DescriptorMatcher::create("BruteForce-Hamming");
-        mCount = 0;
+        int ft_num = fSettings["number_of_features"];
+        double pyramid_scale = fSettings["scale_factor"];
+        int pyramid_level = fSettings["level_pyramid"];
+        mpORB = ORB::create(ft_num, pyramid_scale, pyramid_level);
+        // mpMatcher = DescriptorMatcher::create("BruteForce-Hamming");
+        // mpMatcher = new flann::LshIndexParams(5,10,2);
     }
 
-    void ExtractFeature::DetectFeature(Mat img)
+    void VisualOdometry::DetectFeature(Mat img)
     {   
         mCurrentImage = img;
         switch(framestate)
@@ -43,47 +45,54 @@ namespace Light_SLAM
             case SECOND_FRAME:
                 ExtractSecond();
                 break;
+            case LOST_FRAME:
+                // TODO(allen.fengjl@gmail.com) add the lost condition
+                break;
         }
         mvLastKeyPoints = mvKeyPoints;
         mLastImage = mCurrentImage;
         mLastDesp = mDesp;
     }
 
-    void ExtractFeature::ExtractFisrt()
+    void VisualOdometry::ExtractFisrt()
     {
-        mpORB->detect(mCurrentImage, mvKeyPoints);
-        mpORB->compute(mCurrentImage, mvKeyPoints, mDesp); 
+        mpORB->detectAndCompute(mCurrentImage, Mat(), mvKeyPoints, mDesp); 
 
         framestate = FrameState::SECOND_FRAME;
     }
 
-    void ExtractFeature::ExtractSecond()
+    void VisualOdometry::ExtractSecond()
     {
-        mpORB->detect(mCurrentImage, mvKeyPoints);
-        mpORB->compute(mCurrentImage, mvKeyPoints, mDesp);
+        mpORB->detectAndCompute(mCurrentImage, Mat(), mvKeyPoints, mDesp); 
 
-        mpMatcher->match(mLastDesp, mDesp, mvMatches);
+        mMatcher.match(mLastDesp, mDesp, mvMatches);
 
-        float min_dis = std::min_element (
-                        mvMatches.begin(), mvMatches.end(),
-                        [] ( const cv::DMatch& m1, const cv::DMatch& m2 )
-        {
-            return m1.distance < m2.distance;
-        } )->distance;
+        double max_dist = 0; double min_dist = 100;
+        // Quick calculation of max and min distances between keypoints
+        for( int i = 0; i < mLastDesp.rows; i++ )
+        { 
+            double dist = mvMatches[i].distance;
+            if( dist < min_dist ) min_dist = dist;
+            if( dist > max_dist ) max_dist = dist;
+        }
 
+        // Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
+        // or a small arbitary value ( 0.02 ) in the event that min_dist is very
+        // small)
+        // PS.- radiusMatch can also be used here.
         mvGoodMatches.clear();
-
-        for ( cv::DMatch& m : mvMatches )
-        {
-            if ( m.distance < max<float> ( min_dis*2.0, 30.0 ) )
-            {
-                mvGoodMatches.push_back(m);
+        for( int i = 0; i < mLastDesp.rows; i++ )
+        { 
+            if( mvMatches[i].distance <= max(2*min_dist, 0.02) )
+            { 
+                mvGoodMatches.push_back( mvMatches[i]);
             }
         }
+
         cout<<"good matches: "<<mvGoodMatches.size()<<endl;
     }
 
-    void ExtractFeature::ShowFeature(Mat img)
+    void VisualOdometry::ShowFeature(Mat img)
     {
         Mat ShowKeypoints;
         Mat ShowLastKeypoints;
@@ -93,10 +102,10 @@ namespace Light_SLAM
         imshow("good_matches", ShowMatches);
         imwrite("./good_matches.png", ShowMatches);
         waitKey(0);
-        // drawMatches(mLastImage, mvLastKeyPoints, img, mvKeyPoints, mvMatches, ShowMatches);
-        // imshow("matches", ShowMatches);
-        // imwrite("./matches.png", ShowMatches);
-        // waitKey(0);
+        drawMatches(mLastImage, mvLastKeyPoints, img, mvKeyPoints, mvMatches, ShowMatches);
+        imshow("matches", ShowMatches);
+        imwrite("./matches.png", ShowMatches);
+        waitKey(0);
         
         // drawKeypoints(img, mvKeyPoints, ShowKeypoints);
         // drawKeypoints(mLastImage, mvLastKeyPoints, ShowLastKeypoints);
@@ -105,12 +114,10 @@ namespace Light_SLAM
         // waitKey(0);
     }
 
-    void ExtractFeature::CalEssential()
+    void VisualOdometry::CalEssential()
     {
         vector<Point2f> points1;
         vector<Point2f> points2;
-        // Point2d mOpticalCenter = Point2d(720.639222, 408.736501);
-        // double mFocalLength = 1405.936005;
         Mat mask, E;
         cv::Mat R;
         cv::Mat t;

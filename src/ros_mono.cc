@@ -29,8 +29,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <opencv2/core/core.hpp>
-#include "Extract.h"
-#include "PoseEstimation.h"
+#include "VisualOdometry.h"
 #include "RunSLAM.h"
 using namespace std;
 
@@ -51,9 +50,8 @@ int main(int argc, char **argv)
 
     string SetiingsFile = "/home/jinglun/viorb_config/config/pointgray_mono.yaml"; 
 
-    Light_SLAM::PoseEstimation2Dto2D PE(SetiingsFile);
-    Light_SLAM::ExtractFeature* EF = new Light_SLAM::ExtractFeature;
-    Light_SLAM::RunSLAM Test(EF, PE);
+    Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile);
+    Light_SLAM::RunSLAM Test(EF);
 
     ImageGrabber igb(&Test);
 

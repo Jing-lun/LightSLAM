@@ -1,8 +1,7 @@
 #ifndef RUNSLAM_H
 #define RUNSLAM_H
 
-#include "PoseEstimation.h"
-#include "Extract.h"
+#include "VisualOdometry.h"
 
 #include <string>
 
@@ -17,14 +16,12 @@ class RunSLAM
 
 public:
     
-    RunSLAM(ExtractFeature* pExtract, PoseEstimation2Dto2D Estimation);
+    RunSLAM(VisualOdometry* pExtract);
     ~RunSLAM(){}
 
     void VO(const cv::Mat img);
 
-    std::string mstrSettingPath;
-    ExtractFeature* mpTest1;
-    PoseEstimation2Dto2D mTest2;
+    VisualOdometry* mpTest1;
 };
 
 } // Light_SLAM

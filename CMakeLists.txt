@@ -68,12 +68,19 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 add_executable(light_slam src/ros_mono.cc)
 
 add_library(lightslam SHARED
-src/Extract.cc
-src/PoseEstimation.cc
+src/VisualOdometry.cc
 src/RunSLAM.cc
 )
 
 target_link_libraries(light_slam
+	lightslam
+	${catkin_LIBRARIES}
+  	${OpenCV_LIBRARIES}
+)
+
+add_executable(dataset src/run_dataset.cc)
+
+target_link_libraries(dataset
 	lightslam
 	${catkin_LIBRARIES}
   	${OpenCV_LIBRARIES}

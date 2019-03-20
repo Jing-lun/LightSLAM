@@ -48,18 +48,18 @@ namespace Light_SLAM
 
         E = findEssentialMat(points1, points2, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
         cout << "Essential matrix is " << endl << E << endl;
-        try
-        {
+        // try
+        // {
             recoverPose(E, points1, points2, R, t, mFocalLength, mOpticalCenter, mask);        
             R.copyTo(mR);
             t.copyTo(mt);
             cout << "Rotation matrix is " << endl << R << endl;
             cout << "transform matrix is " << endl << t << endl;
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-        }
+        // }
+        // catch(const std::exception& e)
+        // {
+        //     std::cerr << e.what() << '\n';
+        // }
         
         
     }
