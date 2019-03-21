@@ -33,6 +33,10 @@ public:
     void ExtractSecond();
     void ExtractRest();
     void CalEssential();
+    inline cv::Mat getTranslation()
+    {
+        return mt;
+    }
 
 public:
 

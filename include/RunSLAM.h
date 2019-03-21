@@ -21,7 +21,18 @@ public:
 
     void VO(const cv::Mat img);
 
+public:
+
     VisualOdometry* mpTest1;
+    int mFontFace;
+    double mFontScale;
+    int mFontThickness;
+    cv::Point mText;
+    cv::Mat mTrajectory;
+
+    std::string mstrFrameName;
+    std::string mstrTrajName;
+    char text[200];
 };
 
 } // Light_SLAM

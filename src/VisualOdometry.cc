@@ -31,7 +31,6 @@ namespace Light_SLAM
         int pyramid_level = fSettings["level_pyramid"];
         mpORB = ORB::create(ft_num, pyramid_scale, pyramid_level);
         // mpMatcher = DescriptorMatcher::create("BruteForce-Hamming");
-        // mpMatcher = new flann::LshIndexParams(5,10,2);
     }
 
     void VisualOdometry::DetectFeature(Mat img)
@@ -44,6 +43,15 @@ namespace Light_SLAM
                 break;
             case SECOND_FRAME:
                 ExtractSecond();
+                try
+                {
+                    // ShowFeature(img);
+                    CalEssential();
+                }
+                catch(const std::exception& e)
+                {
+                    std::cerr << e.what() << '\n';
+                }            
                 break;
             case LOST_FRAME:
                 // TODO(allen.fengjl@gmail.com) add the lost condition
@@ -52,6 +60,9 @@ namespace Light_SLAM
         mvLastKeyPoints = mvKeyPoints;
         mLastImage = mCurrentImage;
         mLastDesp = mDesp;
+        mvKeyPoints.clear();
+        mCurrentImage.release();
+        mDesp.release();
     }
 
     void VisualOdometry::ExtractFisrt()
@@ -63,33 +74,44 @@ namespace Light_SLAM
 
     void VisualOdometry::ExtractSecond()
     {
+        mvMatches.clear();
+        mvGoodMatches.clear();
+
         mpORB->detectAndCompute(mCurrentImage, Mat(), mvKeyPoints, mDesp); 
 
         mMatcher.match(mLastDesp, mDesp, mvMatches);
+        cout << "find out totall " << mvMatches.size() << " matches" <<endl;
 
-        double max_dist = 0; double min_dist = 100;
-        // Quick calculation of max and min distances between keypoints
-        for( int i = 0; i < mLastDesp.rows; i++ )
-        { 
+        double min_dist = 10000;
+        double max_dist = 0;
+        for (int i = 0; i < mLastDesp.rows; ++i)
+        {
             double dist = mvMatches[i].distance;
-            if( dist < min_dist ) min_dist = dist;
-            if( dist > max_dist ) max_dist = dist;
+            if (dist < min_dist) min_dist = dist;
+            if (dist > max_dist) max_dist = dist;
         }
 
-        // Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
-        // or a small arbitary value ( 0.02 ) in the event that min_dist is very
-        // small)
-        // PS.- radiusMatch can also be used here.
-        mvGoodMatches.clear();
-        for( int i = 0; i < mLastDesp.rows; i++ )
-        { 
-            if( mvMatches[i].distance <= max(2*min_dist, 0.02) )
-            { 
-                mvGoodMatches.push_back( mvMatches[i]);
+        std::vector<cv::KeyPoint>::iterator it1 = mvKeyPoints.begin();
+        std::vector<cv::KeyPoint>::iterator it2 = mvLastKeyPoints.begin();
+        for (int i = 0; i < mLastDesp.rows; ++i)
+        {
+            if (mvMatches[i].distance <= cv::max(2 * min_dist, 30.0))
+            {
+                mvGoodMatches.push_back(mvMatches[i]);
             }
         }
+        cout << "find out totall " << mvGoodMatches.size() << " good matches" <<endl;
 
-        cout<<"good matches: "<<mvGoodMatches.size()<<endl;
+        int numGoodMatches = mvGoodMatches.size();        
+        if(numGoodMatches < 20)
+        {
+            framestate = FrameState::LOST_FRAME;
+        }
+        else
+        {
+            framestate = FrameState::SECOND_FRAME;
+        }
+        
     }
 
     void VisualOdometry::ShowFeature(Mat img)
@@ -134,9 +156,11 @@ namespace Light_SLAM
         E = findEssentialMat(points1, points2, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
         cout << "Essential matrix is " << endl << E << endl;
         
-        recoverPose(E, points1, points2, R, t, mFocalLength, mOpticalCenter, mask);   
-        cout << "Rotation matrix is " << endl << R << endl;
-        cout << "transform matrix is " << endl << t << endl;
+        recoverPose(E, points1, points2, R, t, mFocalLength, mOpticalCenter, mask);  
+        R.copyTo(mR);
+        t.copyTo(mt); 
+        cout << "Rotation matrix is " << endl << mR << endl;
+        cout << "transform matrix is " << endl << mt << endl;
     }
 
 } //namespace Light_SLAM
