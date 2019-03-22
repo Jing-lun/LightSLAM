@@ -70,6 +70,7 @@ add_executable(light_slam src/ros_mono.cc)
 add_library(lightslam SHARED
 src/VisualOdometry.cc
 src/RunSLAM.cc
+src/VO.cc
 )
 
 target_link_libraries(light_slam

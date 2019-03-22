@@ -3,31 +3,42 @@
 using namespace std;
 using namespace cv;
 
+int frame_id = 0;
 namespace Light_SLAM
 {
-    RunSLAM::RunSLAM(VisualOdometry* pVO):mpTest1(pVO), mFontFace(FONT_HERSHEY_PLAIN), mFontScale(1.0), 
-        mFontThickness(1), mText(10, 50)
+    // RunSLAM::RunSLAM(VisualOdometry* pVO):mpTest1(pVO), mFontFace(FONT_HERSHEY_PLAIN), mFontScale(1.0), 
+    //                                     mFontThickness(1), mText(10, 50)
+    // {
+    //     namedWindow("Camera");
+    //     namedWindow("Trajectory");
+    //     mTrajectory = Mat::zeros(600, 600, CV_8UC3);
+    // }
+
+    RunSLAM::RunSLAM(VO* pVO):mpTest1(pVO), mFontFace(FONT_HERSHEY_PLAIN), mFontScale(1.0), 
+                                        mFontThickness(1), mText(10, 50)
     {
         namedWindow("Camera");
         namedWindow("Trajectory");
         mTrajectory = Mat::zeros(600, 600, CV_8UC3);
+        mpTest1->SetGroundTruth();
     }
 
-    void RunSLAM::VO(const cv::Mat img)
+    void RunSLAM::vo(const cv::Mat& img)
     {
-        mpTest1->DetectFeature(img);
+        // mpTest1->DetectFeature(img);
+        mpTest1->ProcessFrames(img);
         cv::Mat t = mpTest1->getTranslation();
         double x = 0, y = 0, z = 0;   
         if(t.rows != 0)
         {
-            x = 50*t.at<double>(0);
-            y = 50*t.at<double>(1);
-            z = 50*t.at<double>(2);
+            x = t.at<double>(0);
+            y = t.at<double>(1);
+            z = t.at<double>(2);
         }
 
         int draw_x = static_cast<int>(x) + 300;
-        int draw_y = static_cast<int>(z) + 300;
-        cv::circle(mTrajectory, cv::Point(draw_x, draw_y), 1, CV_RGB(255, 255, 0), 2);
+        int draw_y = static_cast<int>(z) + 500;
+        cv::circle(mTrajectory, cv::Point(draw_x, draw_y), 1, CV_RGB(255, 0, 220), 2);
 
         cv::rectangle(mTrajectory, cv::Point(10, 30), cv::Point(580, 60), CV_RGB(0, 0, 0), CV_FILLED);
         sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", x, y, z);

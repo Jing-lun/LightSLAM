@@ -8,7 +8,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/video/tracking.hpp>
 
+extern int frame_id;
 namespace Light_SLAM
 {
 
@@ -25,14 +27,17 @@ public:
     };
 
     VisualOdometry(const std::string &strSettingPath);
+    VisualOdometry(const std::string &strSettingPath, const std::string &strGroundTruth);
     ~VisualOdometry(){}
 
-    void DetectFeature(cv::Mat img);
-    void ShowFeature(cv::Mat img);
+    void DetectFeature(const cv::Mat& img);
+    void ShowFeature(const cv::Mat& img);
     void ExtractFisrt();
     void ExtractSecond();
     void ExtractRest();
     void CalEssential();
+    double GetAbsoluteScale(const int &frame_id);
+    void FeatureDetection();
     inline cv::Mat getTranslation()
     {
         return mt;
@@ -40,7 +45,7 @@ public:
 
 public:
 
-    FrameState framestate;
+    FrameState mFrameState;
     cv::Ptr<cv::ORB> mpORB;
     // cv::Ptr<cv::DescriptorMatcher> mpMatcher;
     cv::FlannBasedMatcher mMatcher;
@@ -60,6 +65,11 @@ public:
     int mFocalLength;
     cv::Mat mR;
     cv::Mat mt;
+
+    int mCount;
+    double mScale;
+    bool bUseDataset;
+    std::string mstrGroundTruth;
 };
 
 } //namespace Light_SLAM

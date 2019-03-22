@@ -2,28 +2,31 @@
 #define RUNSLAM_H
 
 #include "VisualOdometry.h"
+#include "VO.h"
 
 #include <string>
 
 namespace Light_SLAM
 {
 
-class PoseEstimation2Dto2D;
-class ExtractFeature;
+class VisualOdometry;
+class VO;
 
 class RunSLAM
 {
 
 public:
     
-    RunSLAM(VisualOdometry* pExtract);
+    // RunSLAM(VisualOdometry* pVO);
+    RunSLAM(VO* pVO);
     ~RunSLAM(){}
 
-    void VO(const cv::Mat img);
+    void vo(const cv::Mat& img);
 
 public:
 
-    VisualOdometry* mpTest1;
+    // VisualOdometry* mpTest1;
+    VO* mpTest1;
     int mFontFace;
     double mFontScale;
     int mFontThickness;

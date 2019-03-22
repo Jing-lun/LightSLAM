@@ -1,0 +1,4 @@
+<launch>
+
+ 	<node pkg="light_slam" type="light_slam" name="light_slam" args="/home/jinglun/viorb_config/config/pointgray_mono.yaml" cwd="node" output="screen"/>
+</launch>

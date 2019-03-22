@@ -11,35 +11,36 @@
 
 #include <opencv2/core/core.hpp>
 #include "VisualOdometry.h"
+#include "VO.h"
 #include "RunSLAM.h"
 
-int main()
+int main(int argc, char* argv[])
 {
-    const char *position_file_name = "position.txt";
-    const char *frame_viewer_name = "Road facing camera";
-    const char *trajectory_viewer_name = "Trajectory";
+    if(argc != 4)
+    {
+        std::cout << argc;
+        std::cerr << std::endl << "Usage: please add path_to_dataset_image path_to_dataset_groundtruth path_to_settings" << std::endl;        
+        return 1;
+    }
+    const std::string image_list_folder = argv[1];
+    const std::string ground_truth_path = argv[2];
+    const std::string SetiingsFile = argv[3]; 
 
-    const char *image_list_folder = "/home/jinglun/Downloads/data_odometry_gray/00/image_0/";
-    const char *ground_truth_path = "/home/jinglun/Documents/dataset/poses/00.txt";
-    const char *SetiingsFile = "/home/jinglun/viorb_config/config/pointgray_mono.yaml"; 
-
-    Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile);
-    Light_SLAM::RunSLAM Test(EF);
-    double x = 0, y = 0, z = 0;
-    int image_id = 0;
-
+    // Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile, ground_truth_path);
+    Light_SLAM::VO* EF = new Light_SLAM::VO(SetiingsFile, ground_truth_path);
+    Light_SLAM::RunSLAM Test(EF);    
 
     while (true)
     {
         std::stringstream ss;
-        ss << image_list_folder << std::setw(6) << std::setfill('0') << image_id << ".png";
+        ss << image_list_folder << std::setw(6) << std::setfill('0') << frame_id << ".png";
 
         cv::Mat img = cv::imread(ss.str().c_str(), 0);
         if(img.empty())
             break;
         
-        Test.VO(img);
-        image_id++;        
+        Test.vo(img);
+        frame_id++;        
     }
 
     return 0;

@@ -30,6 +30,7 @@
 
 #include <opencv2/core/core.hpp>
 #include "VisualOdometry.h"
+#include "VO.h"
 #include "RunSLAM.h"
 using namespace std;
 
@@ -43,14 +44,21 @@ public:
     Light_SLAM::RunSLAM* mpTest;
 };
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
+    if(argc != 4)
+    {
+        std::cerr << std::endl << "Usage: rosrun light_slam light_slam path_to_settings" << std::endl;    
+        ros::shutdown();    
+        return 1;
+    }
+    const char *SetiingsFile = argv[1];
+    
     ros::init(argc, argv, "LightSLAM");
     ros::start();
 
-    string SetiingsFile = "/home/jinglun/viorb_config/config/pointgray_mono.yaml"; 
-
-    Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile);
+    // Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile);
+    Light_SLAM::VO* EF = new Light_SLAM::VO(SetiingsFile);
     Light_SLAM::RunSLAM Test(EF);
 
     ImageGrabber igb(&Test);
@@ -78,9 +86,7 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
     }
-    // mpSLAM->VisualOdometry(cv_ptr->image,cv_ptr->header.stamp.toSec());
-    mpTest->VO(cv_ptr->image);
-    // mpTest->ShowFeature(cv_ptr->image);
+    mpTest->vo(cv_ptr->image);
 }
 
 
