@@ -3,7 +3,6 @@
 using namespace std;
 using namespace cv;
 
-int frame_id = 0;
 namespace Light_SLAM
 {
     // RunSLAM::RunSLAM(VisualOdometry* pVO):mpTest1(pVO), mFontFace(FONT_HERSHEY_PLAIN), mFontScale(1.0), 

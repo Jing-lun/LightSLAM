@@ -86,3 +86,11 @@ target_link_libraries(dataset
 	${catkin_LIBRARIES}
   	${OpenCV_LIBRARIES}
 )
+
+add_executable(vo src/test_dataset.cc)
+
+target_link_libraries(vo
+	lightslam
+	${catkin_LIBRARIES}
+  	${OpenCV_LIBRARIES}
+)

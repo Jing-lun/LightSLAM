@@ -5,6 +5,7 @@
 using namespace cv;
 using namespace std;
 
+int frame_id = 0;
 namespace Light_SLAM
 {
     VO::VO(const std::string &strSettingPath):mFrameState(INIT_FRAME),
@@ -96,10 +97,10 @@ namespace Light_SLAM
     void VO::ProcessSecondFrame()
     {
         FeatureTracking();
-        Mat E, R, T;
+        Mat E, R, T, mask;
         
-        E = findEssentialMat(mvCurrentPoints, mvLastPoints, mFocalLength, mOpticalCenter);
-        recoverPose(E, mvCurrentPoints, mvLastPoints, R, T, mFocalLength, mOpticalCenter);
+        E = findEssentialMat(mvLastPoints, mvCurrentPoints, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
+        recoverPose(E, mvLastPoints, mvCurrentPoints, R, T, mFocalLength, mOpticalCenter);
         R.copyTo(mR);
         T.copyTo(mT);
         mFrameState = FrameState::REST_FRAME;
@@ -111,14 +112,14 @@ namespace Light_SLAM
     void VO::ProcessRestFrames()
     {
         FeatureTracking();
-        cv::Mat E, R, T;
-        E = findEssentialMat(mvCurrentPoints, mvLastPoints, mFocalLength, mOpticalCenter);
-        recoverPose(E, mvCurrentPoints, mvLastPoints, R, T, mFocalLength, mOpticalCenter);
+        cv::Mat E, R, T, mask;
+        E = findEssentialMat(mvLastPoints, mvCurrentPoints, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
+        recoverPose(E, mvLastPoints, mvCurrentPoints, R, T, mFocalLength, mOpticalCenter);
         mScale = getAbsoluteScale(frame_id);
         if(bUseDataset)
         {
 
-        cout<<mScale<<endl;
+        // cout<<mScale<<endl;
             if(mScale > 0.1)
             {
                 mT = mT + mScale * (mR * T);
@@ -130,8 +131,8 @@ namespace Light_SLAM
             mT = mT + mR * T;
             mR = R * mR;            
         }
-        cout<<"mT = "<<endl<<mT<<endl;
-        cout<<"mR = "<<endl<<mR<<endl;
+        // cout<<"mT = "<<endl<<mT<<endl;
+        // cout<<"mR = "<<endl<<mR<<endl;
         if(mvLastKeyPoints.size() < 2000)
         {
             FeatureExtraction();
@@ -236,7 +237,6 @@ namespace Light_SLAM
         std::ifstream ground_truth(mstrGroundTruth);
         double x = 0, y = 0, z = 0;
         double x_prev, y_prev, z_prev;
-        // 获取当前帧真实位置与前一帧的真实位置的距离作为尺度值
         if (ground_truth.is_open())
         {
             while ((std::getline(ground_truth, line)) && (i <= frame_id))
