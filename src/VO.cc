@@ -30,8 +30,7 @@ namespace Light_SLAM
     }
 
     VO::VO(const std::string &strSettingPath, const std::string &strGroundTruth):
-                                    mFrameState(INIT_FRAME), 
-                                    mCount(0), bUseDataset(true)
+                                    mFrameState(INIT_FRAME), mCount(0), bUseDataset(true)
     {
         mstrGroundTruth = strGroundTruth;
         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ); //Read Setting.yaml
@@ -90,12 +89,12 @@ namespace Light_SLAM
     void VO::ProcessFirstFrame()
     {
         FeatureExtraction();
-        GetGroundTruth();
         mFrameState = FrameState::SECOND_FRAME;
     }
 
     void VO::ProcessSecondFrame()
     {
+        FeatureExtraction();
         FeatureTracking();
         Mat E, R, T, mask;
         
@@ -103,14 +102,16 @@ namespace Light_SLAM
         recoverPose(E, mvLastPoints, mvCurrentPoints, R, T, mFocalLength, mOpticalCenter);
         R.copyTo(mR);
         T.copyTo(mT);
+        cout<<E<<endl;
+        cout<<R<<endl;
+        cout<<T<<endl;
         mFrameState = FrameState::REST_FRAME;
-
         mvLastPoints = mvCurrentPoints;
-        GetGroundTruth();
     }
 
     void VO::ProcessRestFrames()
     {
+        FeatureExtraction();
         FeatureTracking();
         cv::Mat E, R, T, mask;
         E = findEssentialMat(mvLastPoints, mvCurrentPoints, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
@@ -118,8 +119,6 @@ namespace Light_SLAM
         mScale = getAbsoluteScale(frame_id);
         if(bUseDataset)
         {
-
-        // cout<<mScale<<endl;
             if(mScale > 0.1)
             {
                 mT = mT + mScale * (mR * T);
@@ -131,8 +130,6 @@ namespace Light_SLAM
             mT = mT + mR * T;
             mR = R * mR;            
         }
-        // cout<<"mT = "<<endl<<mT<<endl;
-        // cout<<"mR = "<<endl<<mR<<endl;
         if(mvLastKeyPoints.size() < 2000)
         {
             FeatureExtraction();
@@ -199,23 +196,6 @@ namespace Light_SLAM
                             status, error,
                             cv::Size2i(klt_win_size, klt_win_size),
                             4, criteria, 0);
-        disparities_.clear();
-        disparities_.reserve(mvLastPoints.size());
-
-        vector<Point2f>::iterator px_prev_it = mvCurrentPoints.begin();
-        vector<Point2f>::iterator px_curr_it = mvLastPoints.begin();
-        for (size_t i = 0; px_prev_it != mvCurrentPoints.end(); ++i)
-        {
-            if (!status[i])
-            {
-                px_curr_it = mvLastPoints.erase(px_curr_it);
-                px_prev_it = mvCurrentPoints.erase(px_prev_it);
-                continue;
-            }
-            disparities_.push_back(cv::norm(cv::Point2d(px_prev_it->x - px_curr_it->x, px_prev_it->y - px_curr_it->y)));
-            ++px_curr_it;
-            ++px_prev_it;
-        }
     }
 
     bool VO::SetGroundTruth()
@@ -236,7 +216,7 @@ namespace Light_SLAM
         int i = 0;
         std::ifstream ground_truth(mstrGroundTruth);
         double x = 0, y = 0, z = 0;
-        double x_prev, y_prev, z_prev;
+        double x_prev = 0, y_prev = 0, z_prev = 0;
         if (ground_truth.is_open())
         {
             while ((std::getline(ground_truth, line)) && (i <= frame_id))

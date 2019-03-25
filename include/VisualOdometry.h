@@ -23,6 +23,7 @@ public:
     {
         INIT_FRAME,
         SECOND_FRAME,
+        REST_FRAME,
         LOST_FRAME
     };
 
@@ -35,12 +36,12 @@ public:
     void ExtractFisrt();
     void ExtractSecond();
     void ExtractRest();
-    void CalEssential();
+    void FeatureExtraction();
+    void FeatureTracking();
     double GetAbsoluteScale(const int &frame_id);
-    void FeatureDetection();
     inline cv::Mat getTranslation()
     {
-        return mt;
+        return mT;
     }
 
 public:
@@ -48,11 +49,12 @@ public:
     FrameState mFrameState;
     cv::Ptr<cv::ORB> mpORB;
     // cv::Ptr<cv::DescriptorMatcher> mpMatcher;
-    cv::FlannBasedMatcher mMatcher;
-    std::vector<cv::KeyPoint> mvKeyPoints;
+    cv::FlannBasedMatcher mMatcher; 
     cv::Mat mDesp;
-        
+    std::vector<cv::KeyPoint> mvKeyPoints;        
     std::vector<cv::KeyPoint> mvLastKeyPoints;
+    std::vector<cv::Point2f> mvCurrentPoints;
+    std::vector<cv::Point2f> mvLastPoints;
     cv::Mat mLastDesp;
     cv::Mat mLastImage;
     cv::Mat mCurrentImage;
@@ -64,7 +66,7 @@ public:
     cv::Point2d mOpticalCenter;
     int mFocalLength;
     cv::Mat mR;
-    cv::Mat mt;
+    cv::Mat mT;
 
     int mCount;
     double mScale;

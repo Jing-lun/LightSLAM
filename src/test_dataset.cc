@@ -23,19 +23,19 @@ int main()
 
     char text[200];
 
-    // VO对象
+    // VO instance
     Light_SLAM::VO* EF = new Light_SLAM::VO(SetiingsFile, ground_truth_path);
 
-    // 定义显示轨迹的参数
+    // Define trajectory params
     int font_face = cv::FONT_HERSHEY_PLAIN;
     double font_scale = 1;
     int thickness = 1;
     cv::Point text_org(10, 50);
 
-    // 定义显示帧窗口和显示轨迹窗口
+    // Define show windows
     cv::namedWindow(frame_viewer_name, cv::WINDOW_AUTOSIZE);
     cv::namedWindow(trajectory_viewer_name, cv::WINDOW_AUTOSIZE);
-    // 定义显示轨迹的视图
+    // Define traj map
     cv::Mat traj = cv::Mat::zeros(600, 600, CV_8UC3);
     std::fstream out(position_file_name, std::ios::out);
 
@@ -65,16 +65,23 @@ int main()
         int draw_y = static_cast<int>(z) + 100;
         cv::circle(traj, cv::Point(draw_x, draw_y), 0.6, CV_RGB(255, 0, 220), 2);
 
-        cv::rectangle(traj, cv::Point(10, 30), cv::Point(580, 60), CV_RGB(0, 0, 0), CV_FILLED);
+        cv::rectangle(traj, cv::Point(10, 30), cv::Point(590, 50), CV_RGB(0, 0, 0), CV_FILLED);
         sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", x, y, z);
         cv::putText(traj, text, text_org, font_face, font_scale, cv::Scalar::all(255), thickness, 8);
 
-        cv::imshow("Camera", img);
+        // cv::imshow("Camera", img);
         cv::imshow("Trajectory", traj);
-
         cv::waitKey(1);
         frame_id++;
     }
+        try
+        {     
+            cv::imwrite("Trajectory.png", traj);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
     out.close();
 
     return 0;

@@ -57,8 +57,8 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "LightSLAM");
     ros::start();
 
-    // Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile);
-    Light_SLAM::VO* EF = new Light_SLAM::VO(SetiingsFile);
+    Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile);
+    // Light_SLAM::VO* EF = new Light_SLAM::VO(SetiingsFile);
     Light_SLAM::RunSLAM Test(EF);
 
     ImageGrabber igb(&Test);

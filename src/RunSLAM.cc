@@ -5,27 +5,27 @@ using namespace cv;
 
 namespace Light_SLAM
 {
-    // RunSLAM::RunSLAM(VisualOdometry* pVO):mpTest1(pVO), mFontFace(FONT_HERSHEY_PLAIN), mFontScale(1.0), 
-    //                                     mFontThickness(1), mText(10, 50)
-    // {
-    //     namedWindow("Camera");
-    //     namedWindow("Trajectory");
-    //     mTrajectory = Mat::zeros(600, 600, CV_8UC3);
-    // }
-
-    RunSLAM::RunSLAM(VO* pVO):mpTest1(pVO), mFontFace(FONT_HERSHEY_PLAIN), mFontScale(1.0), 
+    RunSLAM::RunSLAM(VisualOdometry* pVO):mpTest1(pVO), mFontFace(FONT_HERSHEY_PLAIN), mFontScale(1.0), 
                                         mFontThickness(1), mText(10, 50)
     {
         namedWindow("Camera");
         namedWindow("Trajectory");
         mTrajectory = Mat::zeros(600, 600, CV_8UC3);
-        mpTest1->SetGroundTruth();
     }
+
+    // RunSLAM::RunSLAM(VO* pVO):mpTest1(pVO), mFontFace(FONT_HERSHEY_PLAIN), mFontScale(1.0), 
+    //                                     mFontThickness(1), mText(10, 50)
+    // {
+    //     namedWindow("Camera");
+    //     namedWindow("Trajectory");
+    //     mTrajectory = Mat::zeros(600, 600, CV_8UC3);
+    //     mpTest1->SetGroundTruth();
+    // }
 
     void RunSLAM::vo(const cv::Mat& img)
     {
-        // mpTest1->DetectFeature(img);
-        mpTest1->ProcessFrames(img);
+        mpTest1->DetectFeature(img);
+        // mpTest1->ProcessFrames(img);
         cv::Mat t = mpTest1->getTranslation();
         double x = 0, y = 0, z = 0;   
         if(t.rows != 0)

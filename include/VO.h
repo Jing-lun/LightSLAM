@@ -55,7 +55,8 @@ public:
     std::vector<cv::KeyPoint> mvLastKeyPoints;
     std::vector<cv::Point2f> mvCurrentPoints;
     std::vector<cv::Point2f> mvLastPoints;
-    std::vector<double> disparities_;
+    std::vector<cv::DMatch> mvMatches;
+    std::vector<cv::DMatch> mvGoodMatches;
 
     cv::Mat mLastImage;
     cv::Mat mCurrentImage;

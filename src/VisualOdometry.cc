@@ -5,11 +5,11 @@
 
 using namespace cv;
 using namespace std;
-
+// int frame_id = 0;
 namespace Light_SLAM
 {
     VisualOdometry::VisualOdometry(const std::string &strSettingPath):mFrameState(INIT_FRAME),
-                                    mMatcher(new flann::LshIndexParams(5,10,2)), mCount(0), bUseDataset(false)
+                                    mMatcher(new flann::LshIndexParams(5,10,2)), bUseDataset(false)
     {
         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ); //Read Setting.yaml
         //     |fx  0   cx|
@@ -37,7 +37,7 @@ namespace Light_SLAM
 
     VisualOdometry::VisualOdometry(const std::string &strSettingPath, const std::string &strGroundTruth):
                                     mFrameState(INIT_FRAME), mMatcher(new flann::LshIndexParams(5,10,2)), 
-                                    mCount(0), bUseDataset(true)
+                                    bUseDataset(true)
     {
         mstrGroundTruth = strGroundTruth;
         cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ); //Read Setting.yaml
@@ -72,22 +72,29 @@ namespace Light_SLAM
             case INIT_FRAME:
                 ExtractFisrt();
                 break;
-            case SECOND_FRAME:
-                ExtractSecond();                
+            case SECOND_FRAME:                                
                 try
                 {
-                    // ShowFeature(img);
-                    CalEssential();
+                    ExtractSecond();
                 }
                 catch(const std::exception& e)
                 {
                     std::cerr << e.what() << '\n';
                 }            
                 break;
+            case REST_FRAME:
+                try
+                {
+                    ExtractRest();
+                }
+                catch(const std::exception& e)
+                {
+                    std::cerr << e.what() << '\n';
+                }
+                break;
             case LOST_FRAME:
                 // TODO(allen.fengjl@gmail.com) add the lost condition
                 cerr << "VO Lost!!" << endl;
-                ExtractSecond();
                 break;
         }
         mvLastKeyPoints = mvKeyPoints;
@@ -96,56 +103,62 @@ namespace Light_SLAM
         mvKeyPoints.clear();
         mCurrentImage.release();
         mDesp.release();
-        mCount++;
     }
 
     void VisualOdometry::ExtractFisrt()
     {
-        mpORB->detectAndCompute(mCurrentImage, Mat(), mvKeyPoints, mDesp); 
-
+        FeatureExtraction();
         mFrameState = FrameState::SECOND_FRAME;
+        // mvLastPoints = mvCurrentPoints;
     }
 
     void VisualOdometry::ExtractSecond()
     {
-        mvMatches.clear();
-        mvGoodMatches.clear();
+        FeatureExtraction();
+        FeatureTracking();
+        Mat E, R, T, mask;
+        
+        E = findEssentialMat(mvLastPoints, mvCurrentPoints, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
+        recoverPose(E, mvLastPoints, mvCurrentPoints, R, T, mFocalLength, mOpticalCenter);
+        R.copyTo(mR);
+        T.copyTo(mT);
+        cout<<E<<endl;
+        cout<<R<<endl;
+        cout<<T<<endl;
+        mFrameState = FrameState::REST_FRAME;
+        
+    }
 
-        mpORB->detectAndCompute(mCurrentImage, Mat(), mvKeyPoints, mDesp); 
-
-        mMatcher.match(mLastDesp, mDesp, mvMatches);
-        cout << "find out totall " << mvMatches.size() << " matches" <<endl;
-
-        double min_dist = 10000;
-        double max_dist = 0;
-        for (int i = 0; i < mLastDesp.rows; ++i)
+    void VisualOdometry::ExtractRest()
+    {
+        FeatureExtraction();
+        FeatureTracking();
+        cv::Mat E, R, T, mask;
+        E = findEssentialMat(mvLastPoints, mvCurrentPoints, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
+        recoverPose(E, mvLastPoints, mvCurrentPoints, R, T, mFocalLength, mOpticalCenter);
+        mScale = GetAbsoluteScale(frame_id);
+        if(bUseDataset)
         {
-            double dist = mvMatches[i].distance;
-            if (dist < min_dist) min_dist = dist;
-            if (dist > max_dist) max_dist = dist;
-        }
-
-        std::vector<cv::KeyPoint>::iterator it1 = mvKeyPoints.begin();
-        std::vector<cv::KeyPoint>::iterator it2 = mvLastKeyPoints.begin();
-        for (int i = 0; i < mLastDesp.rows; ++i)
-        {
-            if (mvMatches[i].distance <= cv::max(2 * min_dist, 30.0))
+            if(mScale > 0.1)
             {
-                mvGoodMatches.push_back(mvMatches[i]);
+                mT = mT + mScale * (mR * T);
+                mR = R * mR; 
             }
-        }
-        cout << "find out totall " << mvGoodMatches.size() << " good matches" <<endl;
-
-        int numGoodMatches = mvGoodMatches.size();        
-        if(numGoodMatches < 20)
+        } 
+        else
         {
-            mFrameState = FrameState::LOST_FRAME;
+            mT = mT + mR * T;
+            mR = R * mR;            
+        }
+        if(mvLastKeyPoints.size() < 20)
+        {
+            FeatureExtraction();
+            FeatureTracking();
         }
         else
         {
-            mFrameState = FrameState::SECOND_FRAME;
+            // mvLastPoints = mvCurrentPoints;
         }
-        
     }
 
     void VisualOdometry::ShowFeature(const Mat& img)
@@ -170,63 +183,47 @@ namespace Light_SLAM
         // waitKey(0);
     }
 
-    void VisualOdometry::CalEssential()
+    void VisualOdometry::FeatureExtraction()
     {
-        vector<Point2f> points1;
-        vector<Point2f> points2;
-        Mat mask, E;
-        cv::Mat R;
-        cv::Mat t;
+        mpORB->detectAndCompute(mCurrentImage, Mat(), mvKeyPoints, mDesp);
+        KeyPoint::convert(mvKeyPoints, mvCurrentPoints);
+    }
+
+    void VisualOdometry::FeatureTracking()
+    {
+        // Flann Matcher Method    
+        mMatcher.match(mLastDesp, mDesp, mvMatches); //Matching descriptor vectors using FLANN matcher
+        cout << "find out totall " << mvMatches.size() << " matches" <<endl;
+        
+        double min_dist = 10000;
+        double max_dist = 0;
+        for (int i = 0; i < mLastDesp.rows; ++i)
+        {
+            double dist = mvMatches[i].distance;
+            if (dist < min_dist) min_dist = dist;
+            if (dist > max_dist) max_dist = dist;
+        }
+        //Draw only "good" matches (i.e. whose distance is less than 2*min_dist, or a small arbitary value ( 0.02 ) in the event that min_dist is very small)
+        mvGoodMatches.clear();
+        mvCurrentPoints.clear();
+        mvLastPoints.clear();
+        for (int i = 0; i < mLastDesp.rows; ++i)
+        {
+            if (mvMatches[i].distance <= cv::max(2 * min_dist, 30.0))
+            {
+                mvGoodMatches.push_back(mvMatches[i]);
+            }
+        }
+        cout << "find out totall " << mvGoodMatches.size() << " good matches" <<endl;
 
         for ( int i = 0; i < ( int ) mvGoodMatches.size(); i++ )
         {
-            points1.push_back ( mvKeyPoints[mvGoodMatches[i].queryIdx].pt );
-            points2.push_back ( mvLastKeyPoints[mvGoodMatches[i].trainIdx].pt );
-        }
-
-        // cv::Mat F = cv::findFundamentalMat(points1, points2, CV_FM_8POINT);
-        // std::cout << "Fundamental matrix is " << std::endl << F << std::endl;
-
-        E = findEssentialMat(points1, points2, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
-        cout << "Essential matrix is " << endl << E << endl;
-        
-        recoverPose(E, points1, points2, R, t, mFocalLength, mOpticalCenter, mask);
-        // cout << "Rotation matrix is " << endl << R << endl;
-        // cout << "transform matrix is " << endl << t << endl;
-        if(bUseDataset)
-        {
-            mScale = GetAbsoluteScale(frame_id);
-            if(mScale > 0.1)
-            {
-                if(mCount >= 2)
-                {
-                    mt = mt + mScale * (mR * t);
-                    mR = R * mR;
-                }
-                else if(mCount == 1)
-                {              
-                    R.copyTo(mR);
-                    t.copyTo(mt); 
-                }
-            }
+            mvLastPoints.push_back ( mvLastKeyPoints[mvGoodMatches[i].queryIdx].pt );
+            mvCurrentPoints.push_back ( mvKeyPoints[mvGoodMatches[i].trainIdx].pt );
         } 
-        else
-        {
-            if(mCount >= 2)
-            {
-                mt = mt + mR * t;
-                mR = R * mR;
-            }
-            else if(mCount == 1)
-            {              
-                R.copyTo(mR);
-                t.copyTo(mt); 
-            }
-        }
-               
     }
 
-    double VisualOdometry::GetAbsoluteScale(const int &frame_id)
+    double VisualOdometry::GetAbsoluteScale(const int& frame_id)
     {
         std::string line;
         int i = 0;

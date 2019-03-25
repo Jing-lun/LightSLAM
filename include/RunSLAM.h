@@ -17,16 +17,16 @@ class RunSLAM
 
 public:
     
-    // RunSLAM(VisualOdometry* pVO);
-    RunSLAM(VO* pVO);
+    RunSLAM(VisualOdometry* pVO);
+    // RunSLAM(VO* pVO);
     ~RunSLAM(){}
 
     void vo(const cv::Mat& img);
 
 public:
 
-    // VisualOdometry* mpTest1;
-    VO* mpTest1;
+    VisualOdometry* mpTest1;
+    // VO* mpTest1;
     int mFontFace;
     double mFontScale;
     int mFontThickness;

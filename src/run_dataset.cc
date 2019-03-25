@@ -11,7 +11,7 @@
 
 #include <opencv2/core/core.hpp>
 #include "VisualOdometry.h"
-#include "VO.h"
+// #include "VO.h"
 #include "RunSLAM.h"
 
 int main(int argc, char* argv[])
@@ -26,8 +26,8 @@ int main(int argc, char* argv[])
     const std::string ground_truth_path = argv[2];
     const std::string SetiingsFile = argv[3]; 
 
-    // Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile, ground_truth_path);
-    Light_SLAM::VO* EF = new Light_SLAM::VO(SetiingsFile, ground_truth_path);
+    Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile, ground_truth_path);
+    // Light_SLAM::VO* EF = new Light_SLAM::VO(SetiingsFile, ground_truth_path);
     Light_SLAM::RunSLAM Test(EF);    
 
     while (true)
