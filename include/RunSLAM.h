@@ -5,6 +5,7 @@
 #include "VO.h"
 
 #include <string>
+#include <fstream>
 
 namespace Light_SLAM
 {
@@ -19,7 +20,7 @@ public:
     
     RunSLAM(VisualOdometry* pVO);
     // RunSLAM(VO* pVO);
-    ~RunSLAM(){}
+    ~RunSLAM();
 
     void vo(const cv::Mat& img);
 
@@ -36,6 +37,7 @@ public:
     std::string mstrFrameName;
     std::string mstrTrajName;
     char text[200];
+    std::fstream out;
 };
 
 } // Light_SLAM

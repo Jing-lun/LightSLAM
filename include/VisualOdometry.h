@@ -27,51 +27,50 @@ public:
         LOST_FRAME
     };
 
-    VisualOdometry(const std::string &strSettingPath);
     VisualOdometry(const std::string &strSettingPath, const std::string &strGroundTruth);
     ~VisualOdometry(){}
-
-    void DetectFeature(const cv::Mat& img);
-    void ShowFeature(const cv::Mat& img);
-    void ExtractFisrt();
-    void ExtractSecond();
-    void ExtractRest();
-    void FeatureExtraction();
-    void FeatureTracking();
-    double GetAbsoluteScale(const int &frame_id);
+    void ProcessFrames(const cv::Mat& img);
+    void FeatureExtract();
+    void FeatureMatching();
+    void FeatureTracking(const std::vector<cv::Point2f>& points1, const std::vector<cv::Point2f>& points2);
+    void ProcessFirstFrame();
+    void ProcessSecondFrame();
+    void ProcessRestFrames();
+    double GetAbsoluteScale(int frame_id);
+    void ShowTrajectory();
     inline cv::Mat getTranslation()
     {
         return mT;
     }
 
+
 public:
-
-    FrameState mFrameState;
-    cv::Ptr<cv::ORB> mpORB;
-    // cv::Ptr<cv::DescriptorMatcher> mpMatcher;
-    cv::FlannBasedMatcher mMatcher; 
-    cv::Mat mDesp;
-    std::vector<cv::KeyPoint> mvKeyPoints;        
-    std::vector<cv::KeyPoint> mvLastKeyPoints;
-    std::vector<cv::Point2f> mvCurrentPoints;
-    std::vector<cv::Point2f> mvLastPoints;
-    cv::Mat mLastDesp;
-    cv::Mat mLastImage;
-    cv::Mat mCurrentImage;
-
-    std::vector<cv::DMatch> mvMatches;
-    std::vector<cv::DMatch> mvGoodMatches;
-
+    std::string mstrGroundTruth;
+    std::string mstrSettingPath;
     cv::Mat mK;
     cv::Point2d mOpticalCenter;
-    int mFocalLength;
-    cv::Mat mR;
-    cv::Mat mT;
-
-    int mCount;
-    double mScale;
+    double mFocalLength;
+    FrameState mFrameState;
     bool bUseDataset;
-    std::string mstrGroundTruth;
+    double mScale;
+
+    cv::Mat mCurrentImage;
+    cv::Mat mDescriptor;
+    std::vector<cv::KeyPoint> mvKeyPoints;
+    std::vector<cv::Point2f> mvCurrentPoints;
+
+    cv::Mat mLastImage;
+    cv::Mat mLastDescriptor;
+    std::vector<cv::KeyPoint> mvLastKeyPoints;
+    std::vector<cv::Point2f> mvLastPoints;
+
+    std::vector<cv::DMatch> mvMatches;
+    cv::Ptr<cv::DescriptorMatcher> mpMatcher;
+    cv::Ptr<cv::FeatureDetector> detector;
+    cv::Ptr<cv::DescriptorExtractor> descriptor;
+    std::vector<cv::DMatch> mvGoodMatches;
+
+    cv::Mat mT, mR;       
 };
 
 } //namespace Light_SLAM

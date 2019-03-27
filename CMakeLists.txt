@@ -65,22 +65,20 @@ include_directories(
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
-add_executable(light_slam src/ros_mono.cc)
-
 add_library(lightslam SHARED
 src/VisualOdometry.cc
 src/RunSLAM.cc
 src/VO.cc
 )
 
-target_link_libraries(light_slam
-	lightslam
-	${catkin_LIBRARIES}
-  	${OpenCV_LIBRARIES}
-)
+# add_executable(light_slam src/ros_mono.cc)
+# target_link_libraries(light_slam
+# 	lightslam
+# 	${catkin_LIBRARIES}
+#   	${OpenCV_LIBRARIES}
+# )
 
 add_executable(dataset src/run_dataset.cc)
-
 target_link_libraries(dataset
 	lightslam
 	${catkin_LIBRARIES}
@@ -88,9 +86,11 @@ target_link_libraries(dataset
 )
 
 add_executable(vo src/test_dataset.cc)
-
 target_link_libraries(vo
 	lightslam
 	${catkin_LIBRARIES}
   	${OpenCV_LIBRARIES}
 )
+
+add_executable(draw src/new.cc)
+target_link_libraries(draw ${OpenCV_LIBS})

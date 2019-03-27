@@ -11,8 +11,8 @@ namespace Light_SLAM
 {
     VisualOdometry::VisualOdometry(const std::string &strSettingPath, const std::string &strGroundTruth):
                                     mstrGroundTruth(strGroundTruth), mstrSettingPath(strSettingPath),
-                                    mFrameState(INIT_FRAME), detector(ORB::create(8000)), descriptor(ORB::create(8000)),
-                                    mpMatcher(DescriptorMatcher::create ( "BruteForce-Hamming" )), bUseDataset(true)
+                                    mFrameState(INIT_FRAME), detector(ORB::create()), descriptor(ORB::create()),
+                                    mpMatcher(DescriptorMatcher::create ( "BruteForce-Hamming" ))
     {
         cv::FileStorage fSettings(mstrSettingPath, cv::FileStorage::READ); //Read Setting.yaml
         //     |fx  0   cx|
@@ -65,6 +65,13 @@ namespace Light_SLAM
                 break;
         }
         mLastImage = mCurrentImage;
+    }
+
+    void VisualOdometry::ProcessFirstFrame()
+    {
+        FeatureExtract();
+        mFrameState = FrameState::SECOND_FRAME;
+
         mLastDescriptor.release();
         mvLastKeyPoints.clear();
         mLastDescriptor = mDescriptor;
@@ -73,16 +80,10 @@ namespace Light_SLAM
         mvKeyPoints.clear();
     }
 
-    void VisualOdometry::ProcessFirstFrame()
-    {
-        FeatureExtract();
-        mFrameState = FrameState::SECOND_FRAME;
-    }
-
     void VisualOdometry::ProcessSecondFrame()
     {
         FeatureExtract();
-        FeatureMatching();
+        FeatureTracking();
 
         vector<Point2f> points1;
         vector<Point2f> points2; 
@@ -92,8 +93,7 @@ namespace Light_SLAM
             points1.push_back ( mvLastKeyPoints[mvGoodMatches[i].queryIdx].pt );
             points2.push_back ( mvKeyPoints[mvGoodMatches[i].trainIdx].pt );
         }
-
-        // FeatureTracking(points1, points2);
+        cout<<points2<<endl;
 
         Mat E, R, T, mask;
         
@@ -101,48 +101,61 @@ namespace Light_SLAM
         recoverPose(E, points2, points1, R, T, mFocalLength, mOpticalCenter);
         R.copyTo(mR);
         T.copyTo(mT);
+        cout<<E<<endl;
+        cout<<R<<endl;
+        cout<<T<<endl;
         mFrameState = FrameState::REST_FRAME;
+
+        Mat img_goodmatch;//筛选之后的较好的匹配点对图像
+        drawMatches ( mLastImage, mvKeyPoints, mCurrentImage, mvLastKeyPoints, mvGoodMatches, img_goodmatch );//得到筛选之后的较好的匹配点对图像
+        imshow ( "good match", img_goodmatch );//显示筛选之后的较好的匹配点对图像
+        waitKey(0);
+
+        mLastDescriptor.release();
+        mvLastKeyPoints.clear();
+        mLastDescriptor = mDescriptor;
+        mvLastKeyPoints = mvKeyPoints;
+        mDescriptor.release();
+        mvKeyPoints.clear();
     }
 
     void VisualOdometry::ProcessRestFrames()
     {
         FeatureExtract();
-        FeatureMatching();
+        FeatureTracking();
 
-        vector<Point2f> points1;
-        vector<Point2f> points2; 
+        // vector<Point2f> points1;
+        // vector<Point2f> points2; 
 
-        for ( int i = 0; i < ( int ) mvGoodMatches.size(); i++ )
-        {
-            points1.push_back ( mvLastKeyPoints[mvGoodMatches[i].queryIdx].pt );
-            points2.push_back ( mvKeyPoints[mvGoodMatches[i].trainIdx].pt );
-        }
+        // for ( int i = 0; i < ( int ) mvGoodMatches.size(); i++ )
+        // {
+        //     points1.push_back ( mvLastKeyPoints[mvGoodMatches[i].queryIdx].pt );
+        //     points2.push_back ( mvKeyPoints[mvGoodMatches[i].trainIdx].pt );
+        // }
+        // cout<<points1.size()<<endl;
 
-        // FeatureTracking(points1, points2);
-
-        Mat E, R, T, mask;
+        // Mat E, R, T, mask;
         
-        E = findEssentialMat(points2, points1, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
-        recoverPose(E, points2, points1, R, T, mFocalLength, mOpticalCenter);
-        mScale = GetAbsoluteScale(frame_id);
-        if(bUseDataset)
-        {
-            if(mScale > 0.1)
-            {
-                mT = mT + mScale * (mR * T);
-                mR = R * mR; 
-            }
-        } 
-        else
-        {
-            mT = mT + mR * T;
-            mR = R * mR;            
-        }
-        if(mvLastKeyPoints.size() < 1000)
-        {
-            FeatureExtract();
-            FeatureMatching();
-        }
+        // E = findEssentialMat(points2, points1, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);
+        // recoverPose(E, points2, points1, R, T, mFocalLength, mOpticalCenter);
+        // R.copyTo(mR);
+        // T.copyTo(mT);
+        // cout<<E<<endl;
+        // cout<<R<<endl;
+        // cout<<T<<endl;
+        // mFrameState = FrameState::REST_FRAME;
+
+        // Mat img_goodmatch;//筛选之后的较好的匹配点对图像
+        // drawMatches ( mLastImage, mvKeyPoints, mCurrentImage, mvLastKeyPoints, mvGoodMatches, img_goodmatch );//得到筛选之后的较好的匹配点对图像
+        // imshow ( "good match", img_goodmatch );//显示筛选之后的较好的匹配点对图像
+        // waitKey(0);
+
+        mLastDescriptor.release();
+        mvLastKeyPoints.clear();
+        mLastDescriptor = mDescriptor;
+        mvLastKeyPoints = mvKeyPoints;
+        mDescriptor.release();
+        mvKeyPoints.clear();
     }
 
     void VisualOdometry::FeatureExtract()
@@ -151,7 +164,7 @@ namespace Light_SLAM
         descriptor->compute ( mCurrentImage, mvKeyPoints, mDescriptor );
     }
 
-    void VisualOdometry::FeatureMatching()
+    void VisualOdometry::FeatureTracking()
     {
         mpMatcher->match ( mLastDescriptor, mDescriptor, mvMatches );
 
@@ -171,28 +184,13 @@ namespace Light_SLAM
     
         for ( int i = 0; i < mLastDescriptor.rows; i++ )
         {
-            if ( mvMatches[i].distance <= max ( 2*min_dist, 30.0 ) )
+            if ( mvMatches[i].distance <= max ( 2*min_dist, 30.0 ) )//最大距离
             {
                 mvGoodMatches.push_back ( mvMatches[i] );
             }
         }
-    }
-
-    void VisualOdometry::FeatureTracking(const vector<Point2f>& points1, const vector<Point2f>& points2)
-    {
-        const double klt_win_size = 21.0;
-        const int klt_max_iter = 30;
-        const double kly_eps = 0.001;
-
-        vector<uchar> status;
-        vector<float> error;
-        vector<float> min_eig_vec;
-        TermCriteria criteria(TermCriteria::COUNT + TermCriteria::EPS, klt_max_iter, kly_eps);
-        calcOpticalFlowPyrLK(mLastImage, mCurrentImage,
-                            points1, points2,
-                            status, error,
-                            cv::Size2i(klt_win_size, klt_win_size),
-                            4, criteria, 0);
+        cout<<mvMatches.size()<<endl;
+        cout<<mvGoodMatches.size()<<endl;
     }
 
     double VisualOdometry::GetAbsoluteScale(int frame_id)

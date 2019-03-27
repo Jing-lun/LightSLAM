@@ -94,7 +94,7 @@ namespace Light_SLAM
 
     void VO::ProcessSecondFrame()
     {
-        FeatureExtraction();
+        // FeatureExtraction();
         FeatureTracking();
         Mat E, R, T, mask;
         
@@ -111,7 +111,7 @@ namespace Light_SLAM
 
     void VO::ProcessRestFrames()
     {
-        FeatureExtraction();
+        // FeatureExtraction();
         FeatureTracking();
         cv::Mat E, R, T, mask;
         E = findEssentialMat(mvLastPoints, mvCurrentPoints, mFocalLength, mOpticalCenter, RANSAC, 0.999, 1.0, mask);

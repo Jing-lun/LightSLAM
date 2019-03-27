@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 
     Light_SLAM::VisualOdometry* EF = new Light_SLAM::VisualOdometry(SetiingsFile, ground_truth_path);
     // Light_SLAM::VO* EF = new Light_SLAM::VO(SetiingsFile, ground_truth_path);
-    Light_SLAM::RunSLAM Test(EF);    
+    Light_SLAM::RunSLAM Test(EF);
 
     while (true)
     {
@@ -39,6 +39,7 @@ int main(int argc, char* argv[])
         if(img.empty())
             break;
         
+        // EF->ProcessFrames(img);
         Test.vo(img);
         frame_id++;        
     }
