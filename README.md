@@ -36,22 +36,20 @@ catkin_make -j4
 
 2. Calibrate your camera
 
-3. 
+3. Change the topic and calibration path to your own version
 ```
 cd slam_ws/src/light_slam/launch
 gedit VO.launch
 ```   
 
-4. Change the topic and calibration path to your own version
-
-5.
+4. Run it
   ```
   cd slam_wa
   source devel/setup.bash
   roslauch light_slam VO.launch
   ```
   
-6. Don't forget to open your camera's node! Here's my camera noed:
+5. Don't forget to open your camera's node! Here's my camera noed:
   ```
   roslaunch pointgrey_camera_driver camera.launch
   ```
